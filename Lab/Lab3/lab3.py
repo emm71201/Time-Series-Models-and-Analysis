@@ -31,20 +31,39 @@ print(f"The size of the test set is {test.shape[0]}")
 #Problem 2
 corr_matrix = train.corr()
 sns.heatmap(corr_matrix)
+plt.title("Correlation map")
+plt.tight_layout()
+# plt.savefig("correlation_map.pdf")
 # plt.show()
 
 X_train = train.to_numpy()[:,1:]
 y_train = train["price"].to_numpy()
+print("\n===== END of Problem 2 ============\n")
 #Problem 3
-
+print("\n===== Problem 3=====================\n")
 S,V,D = np.linalg.svd(X_train)
-print(f"The minimum lambda from SVD is {V.min():.2f}")
-print(f"The condition number is {np.sqrt(V.max()/V.min()):.2f}")
 
+print(f"\nThe eigenvalues from SVD are:\n")
+for val in V:
+    print(f"{val:.2e}", sep=", ")
+
+print(f"\nThe minimum lambda from SVD is {V.min():.2f}\n")
+
+print(f"\nThe maximum lambda from SVD is {V.max():.2f}\n")
+
+print(f"\nThe condition number is {V.max()/V.min():.2f}\n")
+
+print("\n===== END of Problem 3 ============\n")
+
+print("\n===== Problem 4 =====================\n")
 # Problem 4: standardize the dataset
 standardizer = StandardScaler()
 X_train = standardizer.fit_transform(X_train)
+print("\nThe dataset has been standardized\n")
 
+print("\n===== END of Problem 4 ============\n")
+
+print("\n===== Problem 5 =====================\n")
 # Problem 5
 def make_xymatrix(X,y):
     firstcol = np.array([[1] for _ in range(X.shape[0])])
@@ -55,12 +74,22 @@ def LSE_equation(X,Y):
 
 X,Y = make_xymatrix(X_train, y_train)
 beta = LSE_equation(X,Y)
-print(beta)
+print("\nThe regression model coefficients are: \n")
+for val in beta:
+    print(f"{val:.2f}", sep=",")
 
+print()
+print("\n===== END of Problem 5 ============\n")
+
+print("\n===== Problem 6 =====================\n")
 # Problem 6
 model  = sm.OLS(y_train, sm.add_constant(X_train))
 results = model.fit()
-# print(results.summary())
+print(results.summary())
+
+# print(results.summary().as_latex())
+
+print("\n===== END of Problem 6 ===============\n")
 
 # Problem 7
 def find_largestpvalue_predictor(model, predictors):
@@ -70,32 +99,6 @@ def find_largestpvalue_predictor(model, predictors):
     pvalue = model.pvalues[index]
 
     return predictor
-
-# def backward_regression(train, predictors, alpha=0.05):
-
-#     # dummy adjusted r-squared
-#     curr_adj_rsquared = 0
-
-#     y = train["price"]
-#     X = standardizer.fit_transform(train[predictors].to_numpy())
-#     model = sm.OLS(y, sm.add_constant(X))
-#     model = model.fit()
-#     adj_rsquared = model.rsquared_adj
-
-#     while adj_rsquared > curr_adj_rsquared:
-
-#         curr_adj_rsquared = adj_rsquared
-#         largest_pvalue_predictor, pvalue = find_largestpvalue_predictor(model, predictors)
-
-#         if largest_pvalue_predictor:
-#             predictors.remove(largest_pvalue_predictor)
-
-#         X = standardizer.fit_transform(train[predictors].to_numpy())
-#         model = sm.OLS(y, sm.add_constant(X))
-#         model = model.fit()
-#         adj_rsquared = model.rsquared_adj
-
-#     return model
 
 def compute_metrcic(model, metric = "rsquared_adj"):
 
