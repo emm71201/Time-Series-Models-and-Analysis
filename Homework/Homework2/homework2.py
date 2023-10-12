@@ -1,12 +1,10 @@
 # Author: Edison Murairi
-
 # modules
 import matplotlib.pyplot as plt
 import matplotlib as mpl
 import pandas as pd
 import numpy as np
 import seaborn as sns
-
 
 np.random.seed(6313)
 

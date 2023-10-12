@@ -16,7 +16,7 @@ def correlation_coefficent_cal(x,y):
     return sum((x[i] - mean_x) * (y[i] - mean_y) for i in range(len(x))) /\
           np.sqrt(sum((x[i] - mean_x)**2 for i in range(len(x)))\
                    * sum((y[i] - mean_y)**2 for i in range(len(y))))
-    
+
 
 # %%
 x = [1,2,3,4,5]
@@ -42,7 +42,6 @@ mpl.rcParams.update(mpl.rcParamsDefault)
 plt.rc('text', usetex=False)
 plt.rc('font', family='times')
 mpl.rcParams['mathtext.fontset'] = 'cm'
-
 plt.rc('text.latex', preamble=r'\usepackage{amsmath} \usepackage{amssymb}')
 fontsize = 16
 #%%
@@ -71,7 +70,7 @@ ax.set_title(f"Correlation Coefficient = {correlation_coefficent_cal(tute1['GDP'
 #plt.savefig("Figures/gdp-adbudget.pdf")
 plt.show()
 # %%
-# Problem 6 - Using the Seaborn package and pairplot() function, graph the correlation matrix for the tute1.csv dataset. 
+# Problem 6 - Using the Seaborn package and pairplot() function, graph the correlation matrix for the tute1.csv dataset.
 # Plot the Dataframe using the following options. Explain the graphs and justify the cross correlations. [15pts]
 # a. kind="kde"
 # b. kind="hist"
@@ -91,8 +90,8 @@ sns.pairplot(tute1, diag_kind="hist")
 #plt.savefig("Figures/tute1-pairplot-diagkind-kde.pdf")
 plt.show()
 # %%
-# Problem 7 -- Using the Seaborn package and heatmap() function, graph the correlation 
-# matrix for the tute1.csv dataset. 
+# Problem 7 -- Using the Seaborn package and heatmap() function, graph the correlation
+# matrix for the tute1.csv dataset.
 # Explain the depicted correlation matrix
 
 corr = tute1[["Sales", "AdBudget", "GDP"]].corr()

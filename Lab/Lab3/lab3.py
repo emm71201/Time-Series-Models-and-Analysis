@@ -1,3 +1,5 @@
+#%%
+import copy
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -5,15 +7,18 @@ import statsmodels.api as sm
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
+from statsmodels.stats.outliers_influence import variance_inflation_factor
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
 np.random.seed(6331)
 
 url = "https://raw.githubusercontent.com/rjafari979/Information-Visualization-Data-Analytics-Dataset-/main/autos.clean.csv"
 columns = ["price", 'wheel-base', 'length', 'width', 'height', 'curb-weight', 'engine-size',\
     'bore', 'stroke', 'compression-ratio', 'horsepower', 'peak-rpm', 'city-mpg','highway-mpg']
-independent_cols = columns[1:]
+predictors = columns[1:]
 
 df = pd.read_csv(url)[columns]
-X = df[independent_cols]
+X = df[predictors]
 Y = df[["price"]]
 print("Data succesfully obtained")
 
@@ -55,6 +60,209 @@ print(beta)
 # Problem 6
 model  = sm.OLS(y_train, sm.add_constant(X_train))
 results = model.fit()
-print(results.summary())
+# print(results.summary())
 
 # Problem 7
+def find_largestpvalue_predictor(model, predictors):
+
+    index = np.argmax(model.pvalues)
+    predictor = predictors[index-1]
+    pvalue = model.pvalues[index]
+
+    return predictor
+
+# def backward_regression(train, predictors, alpha=0.05):
+
+#     # dummy adjusted r-squared
+#     curr_adj_rsquared = 0
+
+#     y = train["price"]
+#     X = standardizer.fit_transform(train[predictors].to_numpy())
+#     model = sm.OLS(y, sm.add_constant(X))
+#     model = model.fit()
+#     adj_rsquared = model.rsquared_adj
+
+#     while adj_rsquared > curr_adj_rsquared:
+
+#         curr_adj_rsquared = adj_rsquared
+#         largest_pvalue_predictor, pvalue = find_largestpvalue_predictor(model, predictors)
+
+#         if largest_pvalue_predictor:
+#             predictors.remove(largest_pvalue_predictor)
+
+#         X = standardizer.fit_transform(train[predictors].to_numpy())
+#         model = sm.OLS(y, sm.add_constant(X))
+#         model = model.fit()
+#         adj_rsquared = model.rsquared_adj
+
+#     return model
+
+def compute_metrcic(model, metric = "rsquared_adj"):
+
+    if metric == "rsquared_adj":
+        metric_value = model.rsquared_adj
+    elif metric == "aic":
+        metric_value = model.aic
+    elif metric == "bic":
+        metric_value = model.bic
+    
+    return metric_value
+
+#%%
+def backward_regression(train, predictors, metric="rsquared_adj"):
+
+    curr_metric = None
+    curr_model = None
+
+    y = train["price"]
+    X = standardizer.fit_transform(train[predictors].to_numpy())
+    tmp_model = sm.OLS(y, sm.add_constant(X))
+    tmp_model = tmp_model.fit()
+    tmp_metric = compute_metrcic(tmp_model, metric)
+
+
+    if metric == "rsquared_adj":
+        # maximize the rsquared_adjusted
+        curr_metric = 0
+        while tmp_metric > curr_metric:
+            curr_metric = tmp_metric
+            curr_model = tmp_model
+            largest_pvalue_predictor = find_largestpvalue_predictor(curr_model,predictors)
+
+            # remove the predictor with the largest p-value
+            predictors.remove(largest_pvalue_predictor)
+
+            # fit the new model
+            X = standardizer.fit_transform(train[predictors].to_numpy())
+            tmp_model = sm.OLS(y, sm.add_constant(X))
+            tmp_model = tmp_model.fit()
+            tmp_metric = compute_metrcic(tmp_model, metric)
+
+
+        return curr_model, predictors+[largest_pvalue_predictor]
+    
+    else:
+        # minimize the metric
+        curr_metric = 1e10
+        while tmp_metric < curr_metric:
+            curr_metric = tmp_metric
+            curr_model = tmp_model
+            largest_pvalue_predictor = find_largestpvalue_predictor(curr_model,predictors)
+
+            # remove the predictor with the largest p-value
+            predictors.remove(largest_pvalue_predictor)
+
+            # fit the new model
+            X = standardizer.fit_transform(train[predictors].to_numpy())
+            tmp_model = sm.OLS(y, sm.add_constant(X))
+            tmp_model = tmp_model.fit()
+            tmp_metric = compute_metrcic(tmp_model, metric)
+
+
+        return curr_model, predictors+[largest_pvalue_predictor]
+
+    return
+
+metrics = ["rsquared_adj", "aic", "bic"]
+mymap = {"rsquared_adj":"ADJUSTED R^2", "aic":"AIC", "bic":"BIC"}
+print("Using eliminating the variable with the highest Pvalue:\n")
+count = 1
+for metric in metrics:
+    preds = copy.deepcopy(predictors)
+    print(f"\t {count}. {mymap[metric]}:\n")
+    print("\t \t The model summary is: \n")
+    model, predictors = backward_regression(train, preds, metric)
+    print(model.summary())
+    print("\t \t The predictors selected are")
+    print(predictors)
+    
+    count += 1
+
+#%%
+
+def find_largest_vif(train, predictors):
+    X = train[predictors]
+    curr_vif = 0
+    curr_pred = None
+    for i in range(len(predictors)):
+        predictor = predictors[i]
+        tmp_vif = variance_inflation_factor(X.values, i)
+        if tmp_vif > curr_vif:
+            curr_vif = tmp_vif
+            curr_pred = predictor
+    
+    return curr_pred
+
+def VIF_method(train, predictors, metric="rsquared_adj"):
+
+    curr_metric = None
+    curr_model = None
+
+    y = train["price"]
+    X = standardizer.fit_transform(train[predictors].to_numpy())
+    tmp_model = sm.OLS(y, sm.add_constant(X))
+    tmp_model = tmp_model.fit()
+    tmp_metric = compute_metrcic(tmp_model, metric)
+
+    if metric == "rsquared_adj":
+        
+        # maximize the rsquared_adjusted
+        curr_metric = 0
+        while tmp_metric > curr_metric:
+            
+            curr_metric = tmp_metric
+            curr_model = tmp_model
+
+            largest_vif_predictor = find_largest_vif(train[predictors], predictors)
+
+            # remove the predictor with the largest p-value
+
+            predictors.remove(largest_vif_predictor)
+
+            # fit the new model
+            X = standardizer.fit_transform(train[predictors].to_numpy())
+            tmp_model = sm.OLS(y, sm.add_constant(X))
+            tmp_model = tmp_model.fit()
+            tmp_metric = compute_metrcic(tmp_model, metric)
+            print(curr_metric, tmp_metric)
+
+
+        return curr_model, predictors+[largest_vif_predictor]
+    
+    else:
+        # minimize the metric
+        curr_metric = 1e10
+        while tmp_metric < curr_metric:
+            curr_metric = tmp_metric
+            curr_model = tmp_model
+            largest_vif_predictor = find_largest_vif(train[predictors], predictors)
+
+            # remove the predictor with the largest p-value
+            predictors.remove(largest_vif_predictor)
+
+            # fit the new model
+            X = standardizer.fit_transform(train[predictors].to_numpy())
+            tmp_model = sm.OLS(y, sm.add_constant(X))
+            tmp_model = tmp_model.fit()
+            tmp_metric = compute_metrcic(tmp_model, metric)
+
+
+        return curr_model, predictors+[largest_vif_predictor]
+
+    return
+
+#%%
+metrics = ["rsquared_adj", "aic", "bic"]
+mymap = {"rsquared_adj":"ADJUSTED R^2", "aic":"AIC", "bic":"BIC"}
+print("VIF METHOD:\n")
+count = 1
+for metric in metrics:
+    preds = copy.deepcopy(predictors)
+    print(f"\n\t {count}. {mymap[metric]}:\n")
+    print("\n\t \t The model summary is: \n")
+    model, predictors = VIF_method(train, preds, metric)
+    print(model.summary())
+    print("\n\t \t The predictors selected are")
+    print(predictors)
+    
+    count += 1
